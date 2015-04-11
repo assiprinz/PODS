@@ -3,7 +3,7 @@ using System.Collections;
 
 public class DockingPort : MonoBehaviour
 {
-
+	public bool isDocked;
 
 	// Use this for initialization
 	void Start ()
