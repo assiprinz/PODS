@@ -22,7 +22,13 @@ public class BeeBehavior : MonoBehaviour {
 
 	void Start () {
 		rb = gameObject.GetComponent<Rigidbody>();
+
 		targetPos = target.position;
+
+		pGain = pGain / 10f;
+		iGain = iGain / 10f;
+		dGain = dGain / 10f;
+
 	}
 	
 	void FixedUpdate () {
@@ -31,17 +37,31 @@ public class BeeBehavior : MonoBehaviour {
 
 	private void pidControlPosition() {
 		curPos = transform.position;
-   		Vector3 error = new Vector3(targetPos.x - curPos.x, targetPos.y - curPos.y, targetPos.z - curPos.z); // generate the error signal
-   		integrator += error * Time.deltaTime; // integrate error
-   		Vector3 subt = new Vector3(error.x - lastError.x, error.y - lastError.y, error.z - lastError.z);
+   		Vector3 error = new Vector3(targetPos.x - curPos.x, targetPos.y - curPos.y, targetPos.z - curPos.z);
+   		integrator += error * Time.deltaTime;
+   		//Vector3 subt = new Vector3(error.x - lastError.x, error.y - lastError.y, error.z - lastError.z);
+   		Vector3 subt = error - lastError;
    		Vector3 diff = new Vector3(subt.x / Time.deltaTime, subt.y / Time.deltaTime, subt.y / Time.deltaTime); // differentiate error
    		lastError = error;
    		// calculate the force summing the 3 errors with respective gains:
    		Vector3 force = error * pGain + integrator * iGain + diff * dGain;
+
+   		Vector3 distance = targetPos - curPos;
+   		Debug.Log("distance" + distance);
+
    		// clamp the force to the max value available
    		force = Vector3.ClampMagnitude(force, thrust);
    		// apply the force to accelerate the rigidbody:
    		rb.AddForce(force);
+	}
+
+	private void killRotation() {
+
+		rb.AddTorque( - Vector3.ClampMagnitude(rb.angularVelocity, torque));
+	}
+
+	private void killTranslation() {
+		rb.AddForce( - Vector3.ClampMagnitude(rb.velocity, thrust));
 	}
 
 	private void evaluateInput() {
@@ -50,10 +70,18 @@ public class BeeBehavior : MonoBehaviour {
 			pidControlPosition();
 		}
 
+		if(Input.GetKey(KeyCode.R)) {
+			killRotation();
+		}
+
+		if(Input.GetKey(KeyCode.C)) {
+			killTranslation();
+		}
+
 		if(Input.GetKey(KeyCode.W)) {
 			rb.AddForce(transform.forward * thrust);
 		}
-		if(Input.GetKey(KeyCode.A)) {
+		if(Input.GetKey(KeyCode.S)) {
 			rb.AddForce(-transform.forward * thrust);
 		}
 
@@ -69,6 +97,7 @@ public class BeeBehavior : MonoBehaviour {
 		if(Input.GetKey(KeyCode.D)) {
 			rb.AddForce(transform.right * thrust);
 		}
+
 		if(Input.GetKey(KeyCode.UpArrow)) {
 			rb.AddTorque(transform.right * torque);
 		}
@@ -80,6 +109,12 @@ public class BeeBehavior : MonoBehaviour {
 		}
 		if(Input.GetKey(KeyCode.RightArrow)) {
 			rb.AddTorque(transform.up * torque);
+		}
+		if(Input.GetKey(KeyCode.Q)) {
+			rb.AddTorque(transform.forward * torque);
+		}
+		if(Input.GetKey(KeyCode.E)) {
+			rb.AddTorque(-transform.forward * torque);
 		}
 	}
 }
