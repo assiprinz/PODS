@@ -1,11 +1,10 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class PayloadObject : MonoBehaviour
+public class PayloadObject : DockableObject
 {
 
-	public DockingPort frontPort;
-	public DockingPort aftPort;
+
 
 	// Use this for initialization
 	void Start ()
@@ -17,5 +16,11 @@ public class PayloadObject : MonoBehaviour
 	void Update ()
 	{
 	
+	}
+
+	void OnDrawGizmos ()
+	{
+		Gizmos.color = GetComponentInChildren<MeshRenderer> ().sharedMaterial.color;
+		Gizmos.DrawLine (transform.position, transform.position + transform.forward * 1.0f);
 	}
 }
