@@ -33,5 +33,10 @@ public class BeeMind : DockableObject
 		Vector3 pathIntersection = game.GetClosestPathIntersection (transform.position);
 		Gizmos.DrawLine (transform.position, pathIntersection);
 		Gizmos.DrawSphere (pathIntersection, 0.3f);
+
+		
+		PathNode closestNode = game.GetClosestPathNodeToTargetPosition (transform.position);
+		Gizmos.DrawLine (transform.position, closestNode.transform.position);
+		Gizmos.DrawSphere (closestNode.transform.position, 0.3f);
 	}
 }

@@ -52,4 +52,19 @@ public class Game : MonoBehaviour
 		Debug.Log (shortestPathIntersection);
 		return shortestPathIntersection;
 	}
+
+	public PathNode GetClosestPathNodeToTargetPosition (Vector3 position)
+	{
+		float closestNodeDistance = float.PositiveInfinity;
+		PathNode closestNode = null;
+		foreach (PathNode node in pathNodes) {
+			float distanceSquared = (node.transform.position - position).sqrMagnitude;
+			if (distanceSquared < closestNodeDistance) {
+				closestNodeDistance = distanceSquared;
+				closestNode = node;
+			}
+		}
+
+		return closestNode;
+	}
 }
