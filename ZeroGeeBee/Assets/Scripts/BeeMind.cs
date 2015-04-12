@@ -39,6 +39,7 @@ public class BeeMind : DockableObject
 	public DockingPort targetPort;
 	
 	public DockableObject targetDock;
+	public DockableObject targetDeliverDock;
 
 	private bool isOnHighway;
 	private Vector3 highwayIntersection;
@@ -51,6 +52,9 @@ public class BeeMind : DockableObject
 
 	private bool isAlignedWithPort;
 
+	private bool isDockedToPayload;
+	private bool isDockedToGradle;
+
 
 
 	// Use this for initialization
@@ -62,10 +66,29 @@ public class BeeMind : DockableObject
 	// Update is called once per frame
 	void FixedUpdate ()
 	{
-		if (isAlignedWithPort) {
+		if (isDockedToGradle) {
+		} else if (isDockedToPayload) {
+		} else if (isAlignedWithPort) {
 			// Move to dock
-			if (MoveTowardsPoint (targetPort.transform.position + targetPort.transform.forward * 0.1f)) {
-				Debug.Log ("Docked");
+			if (MoveTowardsPoint (targetPort.transform.position + targetPort.transform.forward * 0.6f)) {
+
+				dockingPorts [0].DockWith (targetPort);
+				Joint joint = transform.gameObject.AddComponent<FixedJoint> ();
+				joint.connectedBody = targetPort.GetComponentInParent<Rigidbody> ();
+				if (dockingPorts [0].GetDockedObject ().dockingPorts.Length == 1) {
+					// Docked at wall
+					Debug.Log ("Docked at wall");
+					isDockedToGradle = true;
+				} else {
+					// Docked at payload
+					Debug.Log ("Docked with payload");
+					isDockedToPayload = true;
+					// Reset
+					isInFrontOfTargetPort = false;
+					isAlignedWithPort = false;
+					isOnHighway = false;
+				}
+
 			}
 		} else if (isInFrontOfTargetPort) {
 			// Align with target port
@@ -113,7 +136,7 @@ public class BeeMind : DockableObject
 
 	private bool RotateToAlignWithForwardAndUp (Vector3 targetForward, Vector3 targetUp)
 	{
-		Vector3 newDir = Vector3.RotateTowards (transform.forward, targetForward, 0.02f, 0.0f);
+		Vector3 newDir = Vector3.RotateTowards (transform.forward, targetForward, 0.01f, 0.0f);
 		transform.rotation = Quaternion.LookRotation (newDir, targetUp);
 		return newDir == targetForward;
 	}
@@ -134,6 +157,9 @@ public class BeeMind : DockableObject
 			// Turn to target
 			float turnAngle = Mathf.Clamp (targetAngle * Mathf.Rad2Deg, 0f, 3f);
 			Vector3 axis = Vector3.Cross (transform.forward, targetVector);
+			if (targetAngle == Mathf.PI) {
+				axis = transform.up;
+			}
 			Quaternion targetRotation = Quaternion.AngleAxis (turnAngle, axis);
 			transform.rotation = targetRotation * transform.rotation;
 
