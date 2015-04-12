@@ -18,83 +18,96 @@ public class BeeBehavior : MonoBehaviour {
  	private Vector3 lastError = Vector2.zero; 
 
  	// Sensors ;)
- 	private Vector3 curPos;
  	private float curSpeed;
  	private float curAngular;
 	
  	// States
  	private bool killRotationEnabled = false;
-	private bool navigationEnabled = false;
+ 	private bool killTranslationEnabled = false;
+	private bool moveTowardsEnabled = false;
 	private bool realignEnabled = false;
 	private bool lookAtEnabled = false;
 
+	private PID pid;
+
 	void Start () {
 		rb = gameObject.GetComponent<Rigidbody>();
-		curPos = gameObject.transform.position;
 		targetPos = target.position;
+		pid = new PID(8f,0f,20f);
 	}
 	
 	void FixedUpdate () {
 
 		curSpeed = rb.velocity.magnitude;
 		curAngular = rb.angularVelocity.magnitude;
-		curPos = gameObject.transform.position;
 
-		inputEval();
+		inputKeys();
 
-		Vector3 frameForce = new Vector3(0,0,0);
-		Vector3 frameTorque = new Vector3(0,0,0);
+		Vector3 frameForce = new Vector3();
+		Vector3 frameTorque = new Vector3();
 
 		frameForce += inputForce();
 		frameTorque += inputTorque();
 
-		if(realignEnabled) {
-			if(!realigned()) {
-				killRotation();
-				killTranslation();
-			} else {
-				realignEnabled = false;
+		if (killRotationEnabled) {
+			frameTorque += killRotationMovement();
+			if (rotationKilled()) {
+				killRotationEnabled = false;
+				Debug.Log("Rotation killed");
+			}
+		}
+
+		if (killTranslationEnabled) {
+			frameForce += killTranslationMovement();
+			if (translationKilled()) {
+				killTranslationEnabled = false;
+				Debug.Log("Translation killed");
+			}
+		}
+
+		if (moveTowardsEnabled) {
+			float distance = (targetPos - transform.position).magnitude;
+			float tolerance = 0.05f;
+			//frameForce += towardsTargetForce();
+			frameForce -= Vector3.ClampMagnitude(((targetPos - transform.position) * pid.Update(0f, distance, Time.deltaTime)), thrust);
+			if (distance <= 0.5f && lookAtEnabled) {
+				lookAtEnabled = false;
+				killTranslationEnabled = true;
+				Debug.Log("close to target. deactivating lookat");
+			}
+			if (distance <= 0.07f && rb.velocity.magnitude <= 0.02f) {
 			}
 		}
 
 		if(lookAtEnabled) {
-			frameTorque += lookAtTarget();
+			frameTorque += targetDirectionTorque();
 		}
 
-		
-
-		
-
-		if(killRotationEnabled) {
-			if (!rotZero()) {
-				killRotation();
-			} else {
-				killRotationEnabled = false;
-			}
-			
-
-		}
-
-		rb.AddForce(frameForce);
-		rb.AddTorque(frameTorque);
+		rb.AddForce(frameForce, ForceMode.Acceleration);
+		rb.AddTorque(frameTorque, ForceMode.Acceleration);
 
 	}
 
-	private bool realigned() {
-		bool rotAligned = curAngular < 0.01f;
-		bool transAligned = curSpeed < 0.01f;
-		return (rotAligned && transAligned);
+	private bool translationKilled() {
+		return rb.velocity.magnitude < 0.01f;
 	}
 
-	private bool rotZero() {
-		return curAngular < 0.01f;
+	private bool rotationKilled() {
+		return rb.angularVelocity.magnitude < 0.01f;
 	}
 
-	private bool transZero() {
-		return curSpeed < 0.01f;
+	private Vector3 killRotationMovement() {
+		return ( - Vector3.ClampMagnitude(rb.angularVelocity * 2, torque));
 	}
 
-	private void pidControlPosition() {
+	private Vector3 killTranslationMovement() {
+		 return ( - Vector3.ClampMagnitude(rb.velocity * 5, thrust));
+	}
+
+	private Vector3 towardsTargetForce() {
+
+		Vector3 returnForce = new Vector3();
+
 		transform.position = transform.position;
 		float distanceToTarget = (targetPos - transform.position).magnitude;
 
@@ -105,31 +118,29 @@ public class BeeBehavior : MonoBehaviour {
    		lastError = error;
    		Vector3 force = error * pGain + integrator * iGain + diff * dGain;
 
-   		if(distanceToTarget > 1.5f) {
-   			force = Vector3.ClampMagnitude(force, thrust);
+   		float brakeLength = (rb.velocity.magnitude * rb.velocity.magnitude) / (2 * thrust);
+
+   		if(brakeLength < distanceToTarget) {
+   			returnForce += Vector3.ClampMagnitude(force, thrust);
    		} else {
    			force = force * -1;
-   			force = Vector3.ClampMagnitude(force, thrust);
+   			returnForce += Vector3.ClampMagnitude(force, thrust);
    		}
 
-   		rb.AddForce(force);
+   		return returnForce;
 	}
 
-	private Vector3 lookAtTarget() {
+	private Vector3 targetDirectionTorque() {
 
-		Vector3 retTorque = new Vector3();
+		Vector3 returnTorque = new Vector3();
 		
-		Vector3 curDir = transform.forward;
-		Vector3 targetDir = targetPos - transform.position;
-		targetDir.Normalize();
-		float dotProd = Vector3.Dot(curDir, targetDir);
-		float angle = Mathf.Acos(dotProd);
+		float angle = Mathf.Acos(Vector3.Dot(transform.forward, (targetPos - transform.position).normalized));
 
+		// needed angular to slow down to zero at target direction
 		float brakeLength = (curAngular * curAngular) / (2 * torque);
 
 		Vector3 force = Vector3.Cross(transform.forward, (target.transform.position - transform.position)).normalized;
 
-		
 		Vector3 green = Vector3.Cross(transform.forward, (target.transform.position - transform.position)).normalized;
 		Vector3 red = rb.angularVelocity.normalized;
 
@@ -145,48 +156,57 @@ public class BeeBehavior : MonoBehaviour {
 		} else {
 			dir = 1f;
 		}
-
 		if (rotKillFactor == 1f) {
 			rotKillFactor = 0f;
 			targetRotFactor = 1;
 		}
-
 		if (dir == -1f || dir == 1f && brakeLength < angle) {
-			retTorque += (red * torque * rotKillFactor * -1 + force * torque * targetRotFactor);
+			returnTorque += (red * torque * rotKillFactor * -1 + force * torque * targetRotFactor);
 		} else {
 			if(angle > 0.01f) {
-				retTorque += ((force * torque) * -1 + red * torque * rotKillFactor * -1);
+				returnTorque += ((force * torque) * -1 + red * torque * rotKillFactor * -1);
 			}
 		}
-
-		return retTorque;
-		
-		//Debug.Log("D2: " + dotProd2 + "   aF: " + arschlochFaktor + "   rKF: " + rotKillFactor);
-		//Debug.Log(dir + "a: " + angle + "f: " + force + "trf " + targetRotFactor);
-		
+		return returnTorque;
 	}
 
-	private void killRotation() {
-		rb.AddTorque( - Vector3.ClampMagnitude(rb.angularVelocity * 2, torque));
-	}
 
-	private void killTranslation() {
-		rb.AddForce( - Vector3.ClampMagnitude(rb.velocity * 5, thrust));
-	}
 
-	private void inputEval() {
+	private void inputKeys() {
 		// Navigation Switch
 		if(Input.GetKeyUp(KeyCode.F)) {
-			navigationEnabled = !navigationEnabled;
+			if (!moveTowardsEnabled) {
+				moveTowardsEnabled = true;
+				Debug.Log("Navigation ON");
+			} else {
+				moveTowardsEnabled = false;
+				Debug.Log("navigation off");
+			}
+			
+			
 		}
 
 		// Kill Rot
 		if(Input.GetKeyUp(KeyCode.R)) {
-			realignEnabled = !realignEnabled;
+			killRotationEnabled = true;
+			Debug.Log("RotKill ON");
+		}
+
+		if(Input.GetKeyUp(KeyCode.T)) {
+			killTranslationEnabled = true;
+			Debug.Log("TransKill ON");
 		}
 
 		if(Input.GetKeyUp(KeyCode.L)) {
-			lookAtEnabled = !lookAtEnabled;
+			if (lookAtEnabled) {
+				lookAtEnabled = false;
+				killRotationEnabled = true;
+				Debug.Log("lookat off");
+			} else {
+				lookAtEnabled = true;
+				Debug.Log("LookAt ON");
+			}
+			
 		}
 	}
 
@@ -260,4 +280,27 @@ public class BeeBehavior : MonoBehaviour {
 	}
 
 	
+}
+
+public class PID {
+	public float pFactor, iFactor, dFactor;
+		
+	float integral;
+	float lastError;
+	
+	
+	public PID(float pFactor, float iFactor, float dFactor) {
+		this.pFactor = pFactor;
+		this.iFactor = iFactor;
+		this.dFactor = dFactor;
+	}
+	
+	
+	public float Update(float setpoint, float actual, float timeFrame) {
+		float present = setpoint - actual;
+		integral += present * timeFrame;
+		float deriv = (present - lastError) / timeFrame;
+		lastError = present;
+		return present * pFactor + integral * iFactor + deriv * dFactor;
+	}
 }
