@@ -13,6 +13,7 @@ GameObject:
   - 23: {fileID: 2386692}
   - 114: {fileID: 11477288}
   - 114: {fileID: 11457834}
+  - 54: {fileID: 5400166}
   m_Layer: 0
   m_Name: StaticDock Green
   m_TagString: Untagged
@@ -92,6 +93,21 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 137872}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!54 &5400166
+Rigidbody:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 137872}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: .0500000007
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!64 &6477624
 MeshCollider:
   m_ObjectHideFlags: 1

@@ -33,6 +33,10 @@ public class BeeMind : DockableObject
 	 */
 
 	public Game game;
+	
+	public float speed = 1.0f;
+	public bool connected = false;
+	public DockingPort targetPort;
 
 	public PayloadObject targetPayload;
 	public DockableObject targetDock;
@@ -43,10 +47,11 @@ public class BeeMind : DockableObject
 	private PathResult highwayPath;
 
 	private bool isInRoomWithTarget;
-	private DockingPort targetPort;
 
 	private bool isInFrontOfTargetPort;
-	
+
+
+
 	// Use this for initialization
 	void Start ()
 	{
@@ -57,6 +62,7 @@ public class BeeMind : DockableObject
 	void FixedUpdate ()
 	{
 		if (isInFrontOfTargetPort) {
+			// Align with target port
 
 		} else if (isInRoomWithTarget) {
 			// Choose port and move to it
@@ -96,6 +102,8 @@ public class BeeMind : DockableObject
 
 	private bool RotateToAlignWithForwardAndUp (Vector3 targetForward, Vector3 targetUp)
 	{
+		Vector3 newDir = Vector3.RotateTowards (transform.forward, targetForward, 0.2f, 0.0f);
+		transform.rotation = Quaternion.LookRotation (newDir, targetUp);
 		return false;
 	}
 
@@ -127,7 +135,37 @@ public class BeeMind : DockableObject
 
 		return false;
 	}
+	/*void Update ()
+	{
+		float step = speed * Time.deltaTime;
+		if (transform.position.Equals (targetPort.getDockingNearLocation ())) {
+			float upDot = Vector3.Dot (dockingPorts [0].transform.up, targetPort.transform.up);
+			float forwardDot = Vector3.Dot (dockingPorts [0].transform.forward * -1, targetPort.transform.forward);
+			//Debug.Log (upDot);
+			//Debug.Log (forwardDot);
+			if (upDot == 1f && forwardDot == 1f) {
+				if (!connected) {
+					Joint joint = transform.gameObject.AddComponent<FixedJoint> ();
+					joint.connectedBody = targetPort.GetComponentInParent<Rigidbody> ();
+					connected = true;
+				}
+				//Debug.Log("done");
+			} else {
+				//Debug.Log("dockport");
+				//Debug.Log (dockingPorts[0].transform.up+" "+dockingPorts[0].transform.up.magnitude);
+				//Debug.Log ("targetPort");
+				//Debug.Log (targetPort.transform.up+" "+targetPort.transform.up.magnitude);
+				Vector3 targetDir = targetPort.transform.position - transform.position;
+				Vector3 newDir = Vector3.RotateTowards (transform.forward, targetDir, step, 0.0f);
+				Debug.DrawRay (transform.position, newDir, Color.red);
+				transform.rotation = Quaternion.LookRotation (newDir, targetPort.transform.up);
+				//transform.rotation = Quaternion.Slerp(transform.rotation, targetPort.transform.rotation, step);
+			}
 
+		} else {
+			transform.position = Vector3.MoveTowards (transform.position, targetPort.getDockingNearLocation (), step);
+		}
+	}*/
 	void OnDrawGizmos ()
 	{
 		Gizmos.color = GetComponentInChildren<MeshRenderer> ().sharedMaterial.color;
