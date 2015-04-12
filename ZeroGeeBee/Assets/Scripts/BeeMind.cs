@@ -37,8 +37,7 @@ public class BeeMind : DockableObject
 	public float speed = 1.0f;
 	public bool connected = false;
 	public DockingPort targetPort;
-
-	public PayloadObject targetPayload;
+	
 	public DockableObject targetDock;
 
 	private bool isOnHighway;
@@ -49,6 +48,8 @@ public class BeeMind : DockableObject
 	private bool isInRoomWithTarget;
 
 	private bool isInFrontOfTargetPort;
+
+	private bool isAlignedWithPort;
 
 
 
@@ -61,11 +62,21 @@ public class BeeMind : DockableObject
 	// Update is called once per frame
 	void FixedUpdate ()
 	{
-		if (isInFrontOfTargetPort) {
+		if (isAlignedWithPort) {
+			// Move to dock
+			if (MoveTowardsPoint (targetPort.transform.position + targetPort.transform.forward * 0.1f)) {
+				Debug.Log ("Docked");
+			}
+		} else if (isInFrontOfTargetPort) {
 			// Align with target port
-
+			Vector3 targetVector = targetPort.transform.position - transform.position;
+			if (RotateToAlignWithForwardAndUp (targetVector, targetPort.transform.up)) {
+				// Aligned with port
+				isAlignedWithPort = true;
+				Debug.Log ("Aligned with port");
+			}
 		} else if (isInRoomWithTarget) {
-			// Choose port and move to it
+			// Move to port
 			if (MoveTowardsPoint (targetPort.getDockingNearLocation ())) {
 				isInFrontOfTargetPort = true;
 				Debug.Log ("Arrived at target port");
@@ -80,7 +91,7 @@ public class BeeMind : DockableObject
 				if (nextHighwayNode == null) {
 					// Arrived in target room
 					isInRoomWithTarget = true;
-					targetPort = targetPayload.GetFreeDockingPort ();
+					targetPort = targetDock.GetFreeDockingPort ();
 					Debug.Log ("Arrived in target room");
 				}
 			}
@@ -92,7 +103,7 @@ public class BeeMind : DockableObject
 
 				// Arrived on highway, calculate highway path
 				isOnHighway = true;
-				PathNode exitNode = game.GetClosestPathNodeToTargetPosition (targetPayload.transform.position);
+				PathNode exitNode = game.GetClosestPathNodeToTargetPosition (targetDock.transform.position);
 				highwayPath = game.GetPathToNode (transform.position, exitNode);
 				Debug.Log ("Arrived at highway, nodes to go: " + highwayPath.nodes.Length + ", first node: " + highwayPath.GetCurrentNode ());
 			}
@@ -102,9 +113,9 @@ public class BeeMind : DockableObject
 
 	private bool RotateToAlignWithForwardAndUp (Vector3 targetForward, Vector3 targetUp)
 	{
-		Vector3 newDir = Vector3.RotateTowards (transform.forward, targetForward, 0.2f, 0.0f);
+		Vector3 newDir = Vector3.RotateTowards (transform.forward, targetForward, 0.02f, 0.0f);
 		transform.rotation = Quaternion.LookRotation (newDir, targetUp);
-		return false;
+		return newDir == targetForward;
 	}
 
 	private bool MoveTowardsPoint (Vector3 targetPoint)
@@ -180,7 +191,7 @@ public class BeeMind : DockableObject
 		Gizmos.DrawLine (transform.position, closestNode.transform.position);
 		Gizmos.DrawSphere (closestNode.transform.position, 0.3f);
 
-		PathNode exitNode = game.GetClosestPathNodeToTargetPosition (targetPayload.transform.position);
+		PathNode exitNode = game.GetClosestPathNodeToTargetPosition (targetDock.transform.position);
 		PathResult path = game.GetPathToNode (transform.position, exitNode);
 		Gizmos.color = Color.magenta;
 		foreach (PathNode node in path.nodes) {

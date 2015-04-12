@@ -3,7 +3,8 @@ using System.Collections;
 
 public class DockingPort : MonoBehaviour
 {
-	public bool isDocked;
+
+	public DockingPort dockedWith;
 
 	// Use this for initialization
 	void Start ()
@@ -20,6 +21,28 @@ public class DockingPort : MonoBehaviour
 	public Vector3 getDockingNearLocation ()
 	{
 		return (transform.position + (transform.forward * 1));
+	}
+
+	public DockableObject GetDockedObject ()
+	{
+		return dockedWith.GetComponentInParent<DockableObject> ();
+	}
+
+	public bool IsDocked ()
+	{
+		return dockedWith != null;
+	}
+
+	public void DockWith (DockingPort otherPort)
+	{
+		dockedWith = otherPort;
+		otherPort.dockedWith = this;
+	}
+
+	public void Undock ()
+	{
+		dockedWith.dockedWith = null;
+		dockedWith = null;
 	}
 
 	void OnDrawGizmos ()

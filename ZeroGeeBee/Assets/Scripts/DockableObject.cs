@@ -9,7 +9,7 @@ public class DockableObject : MonoBehaviour
 	public DockingPort GetFreeDockingPort ()
 	{
 		foreach (DockingPort port in dockingPorts) {
-			if (!port.isDocked) {
+			if (!port.IsDocked ()) {
 				return port;
 			}
 		}
