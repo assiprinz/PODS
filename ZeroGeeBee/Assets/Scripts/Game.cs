@@ -49,7 +49,6 @@ public class Game : MonoBehaviour
 		}
 		//PathNode node = pathRoot;
 		//while
-		Debug.Log (shortestPathIntersection);
 		return shortestPathIntersection;
 	}
 
