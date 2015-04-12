@@ -32,7 +32,7 @@ public class BeeBehavior : MonoBehaviour {
 
 	void Start () {
 		rb = gameObject.GetComponent<Rigidbody>();
-		targetPos = target.position;
+		targetPos = target.transform.position;
 		pid = new PID(8f,0f,20f);
 	}
 	
@@ -66,16 +66,26 @@ public class BeeBehavior : MonoBehaviour {
 		}
 
 		if (moveTowardsEnabled) {
+
+			killTranslationEnabled = true;
 			float distance = (targetPos - transform.position).magnitude;
 			float tolerance = 0.05f;
 			//frameForce += towardsTargetForce();
-			frameForce -= Vector3.ClampMagnitude(((targetPos - transform.position) * pid.Update(0f, distance, Time.deltaTime)), thrust);
-			if (distance <= 0.5f && lookAtEnabled) {
+			//Vector3 lateralCorrection = Vector3.Reflect(rb.velocity, (transform.position - targetPos).normalized * -1f) * -.3f;
+			Vector3 moveForce = Vector3.ClampMagnitude(((targetPos - transform.position) * pid.Update(0f, distance, Time.deltaTime)), thrust);
+
+
+			frameForce -= moveForce;
+
+			if (distance <= 0.7f && lookAtEnabled) {
 				lookAtEnabled = false;
-				killTranslationEnabled = true;
+				
+				killRotationEnabled = true;
 				Debug.Log("close to target. deactivating lookat");
 			}
 			if (distance <= 0.07f && rb.velocity.magnitude <= 0.02f) {
+				killTranslationEnabled = false;
+				moveTowardsEnabled = false;
 			}
 		}
 
@@ -101,14 +111,13 @@ public class BeeBehavior : MonoBehaviour {
 	}
 
 	private Vector3 killTranslationMovement() {
-		 return ( - Vector3.ClampMagnitude(rb.velocity * 5, thrust));
+		 return ( - Vector3.ClampMagnitude(rb.velocity * 1, thrust));
 	}
 
 	private Vector3 towardsTargetForce() {
 
 		Vector3 returnForce = new Vector3();
 
-		transform.position = transform.position;
 		float distanceToTarget = (targetPos - transform.position).magnitude;
 
    		Vector3 error = new Vector3(targetPos.x - transform.position.x, targetPos.y - transform.position.y, targetPos.z - transform.position.z);
@@ -126,6 +135,7 @@ public class BeeBehavior : MonoBehaviour {
    			force = force * -1;
    			returnForce += Vector3.ClampMagnitude(force, thrust);
    		}
+
 
    		return returnForce;
 	}
@@ -266,17 +276,33 @@ public class BeeBehavior : MonoBehaviour {
 	}
 
 	void OnDrawGizmos() {
-		Gizmos.color = Color.blue;
-		Gizmos.DrawRay(transform.position, transform.forward * 50f);
-		Gizmos.color = Color.blue;
-		Gizmos.DrawWireSphere(transform.position, 1f);
-		/*
-		Gizmos.color = Color.green;
-		Vector3 force = Vector3.Cross(transform.forward, (target.transform.position - transform.position));
-		Gizmos.DrawRay(transform.position, force * 2);
-		Gizmos.color = Color.red;
-		Gizmos.DrawRay(transform.position, rb.angularVelocity * 2);
-		*/
+		
+		if (lookAtEnabled) {
+			Gizmos.color = Color.white;
+			Gizmos.DrawRay(transform.position, transform.forward * (targetPos-transform.position).magnitude);
+		}
+
+		if (killRotationEnabled) {
+			Gizmos.color = Color.blue;
+			Gizmos.DrawWireSphere(transform.position, 1f);
+		}
+		
+		
+		if (moveTowardsEnabled) {
+			Gizmos.color = Color.yellow;
+   			Gizmos.DrawRay(transform.position, targetPos - transform.position);
+   			Vector3 velocity = rb.velocity;
+	   		Gizmos.color = Color.green;
+	   		Gizmos.DrawRay(transform.position, velocity);
+
+
+	   		Vector3 cancel = Vector3.Reflect(velocity, (transform.position - targetPos).normalized * -1f) * -1f;
+	   		Gizmos.color = Color.red;
+	   		Gizmos.DrawRay(transform.position, cancel);
+		}
+		
+
+
 	}
 
 	

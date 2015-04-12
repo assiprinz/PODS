@@ -19,7 +19,7 @@ public class TargetGizmo : MonoBehaviour {
 
 	void OnDrawGizmos() {
 		Gizmos.color = sphereColor;
-		Gizmos.DrawWireSphere(transform.position, 1.2f);
+		Gizmos.DrawWireSphere(transform.position, 1f);
 		/*
 		Gizmos.color = Color.green;
 		Vector3 force = Vector3.Cross(transform.forward, (target.transform.position - transform.position));
