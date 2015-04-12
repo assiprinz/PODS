@@ -17,6 +17,11 @@ public class DockingPort : MonoBehaviour
 		
 	}
 
+	public Vector3 getDockingNearLocation ()
+	{
+		return (transform.position + (transform.forward * 1));
+	}
+
 	void OnDrawGizmos ()
 	{
 		Gizmos.color = Color.yellow;

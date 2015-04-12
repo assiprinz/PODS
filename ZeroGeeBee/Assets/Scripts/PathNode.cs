@@ -4,7 +4,8 @@ using System.Collections;
 public class PathNode : MonoBehaviour
 {
 
-	public PathNode[] outgoingNodes;
+	//[System.NonSerialized]
+	public PathNodeLink[] nodeLinks;
 
 	// Use this for initialization
 	void Start ()
@@ -18,14 +19,5 @@ public class PathNode : MonoBehaviour
 	
 	}
 
-	void OnDrawGizmos ()
-	{
-		Gizmos.color = Color.green;
-		Gizmos.DrawSphere (transform.position, 0.3f);
-		foreach (PathNode node in outgoingNodes) {
-			if (node == null)
-				continue;
-			Gizmos.DrawLine (transform.localPosition, node.transform.localPosition);
-		}
-	}
+
 }
